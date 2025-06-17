@@ -1,0 +1,138 @@
+Private Sub Workbook_Open()
+
+Dim Current As Workbook
+
+Dim Current_FP As String
+Dim C_Title As String
+Dim Current_Txt_FP As String
+
+Set Current = ActiveWorkbook
+
+C_Title = Current.Name
+C_Title = Replace(C_Title, ".xlsm", "")
+
+Current_FP = Current.Path
+Current_Txt_FP = Current_FP & "\" & C_Title & "_Settings.txt"
+
+Call GetData(Current_Txt_FP)
+Call ClosePOrC(Current_FP)
+
+End Sub
+
+Sub GetData(Current_Txt_FP As String)
+On Error Resume Next
+Dim Free_Num_Init As Integer
+Dim File_Content As String
+Dim File_Content_Lines() As String
+Dim LineSize As Long
+
+Dim Title As String
+Dim Title_Line_CH As String
+Dim Title_Bool As Integer
+
+Dim Current_WB As Workbook
+Dim C_Name As Name
+Dim Names() As String
+Dim Name_Count As Long
+Dim C_Range As Range
+Dim Ranges() As Range
+
+
+Dim Temp_Line As String
+Dim R_Bool As Integer
+Dim Rem_Line As String
+
+
+Dim i As Long
+Dim j As Long
+
+File_Num_Init = FreeFile
+Open Current_Txt_FP For Input As File_Num_Init
+File_Content = Input(LOF(File_Num_Init), File_Num_Init)
+'Opens Text file, initializes, and gets every line from the text file into a string
+File_Content_Lines = Split(File_Content, vbCrLf)
+LineSize = UBound(File_Content_Lines) - LBound(File_Content_Lines)
+
+i = 0
+Do Until i = LineSize + 1
+Title_Line_CH = "Title="
+    Title_Bool = InStr(1, File_Content_Lines(i), Title_Line_CH, vbTextCompare)
+    If Title_Bool > 0 Then
+        Title = Replace(File_Content_Lines(i), Title_Line_CH, "")
+    End If
+'Gets the Title of the current Notepad
+i = i + 1
+Loop
+
+
+
+
+Set Current_WB = ActiveWorkbook
+Name_Count = Current_WB.Names.Count
+ReDim Names(1 To Name_Count)
+ReDim Range(1 To Name_Count)
+j = 1
+
+For Each C_Name In Current_WB.Names
+    If Not C_Name.Name = "today" Then
+    Names(j) = C_Name.Name
+    Set Ranges(j) = Current_WB.Names(Names(j)).RefersToRange
+    j = j + 1
+    End If
+Next C_Name
+
+i = 0
+
+
+Do Until i = LineSize + 1
+Call j_Loop(i, j, Name_Count, File_Content_Lines(), Names())
+
+i = i + 1
+Loop
+
+Close #File_Num_Init
+
+Current_WB.Save
+End Sub
+
+
+Sub j_Loop(i As Long, j As Long, Name_Count As Long, File_Content_Lines() As String, Names() As String)
+
+Dim R_Bool As Integer
+Dim Rem_Line As String
+Dim Temp_Line As String
+
+j = 1
+    Do Until j = Name_Count
+    
+    R_Bool = InStr(1, File_Content_Lines(i), Names(j), vbTextCompare)
+        If R_Bool > 0 Then
+        Rem_Line = Names(j) & "="
+        Temp_Line = Replace(File_Content_Lines(i), Rem_Line, "")
+        
+        Range(Names(j)).Value = Temp_Line
+        End If
+    j = j + 1
+    Loop
+End Sub
+
+
+Sub ClosePOrC(Current_FP As String)
+
+Dim WB_Open As Workbook
+
+Application.ScreenUpdating = False
+
+For Each WB_Open In Application.Workbooks
+If WB_Open.Name <> ThisWorkbook.Name Then
+WB_Open.Close SaveChanges:=True
+End If
+Next WB_Open
+
+Application.ScreenUpdating = True
+
+
+End Sub
+
+
+
