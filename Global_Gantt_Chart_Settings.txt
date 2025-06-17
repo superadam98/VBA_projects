@@ -1,0 +1,13 @@
+ParentFile=DNE
+CurrentFile=C:\Users\admin_achilal\Desktop\Gantt\Global_Gantt_Chart.xlsm
+Title=Global_Gantt_Chart
+Global_Gantt_ChartMainProjectLine1=Griff and Associates
+Global_Gantt_ChartMainPercentAmount1=0
+Global_Gantt_ChartMainStartDate1=6/2/2025
+Global_Gantt_ChartMainEndDate1=6/30/2025
+ChildFile=C:\Users\admin_achilal\Desktop\Gantt\Company\Company.xlsm
+Companyrowcount=1
+CompanyProjectLine1=Griff and Associates
+CompanyPercentAmount1=0.188888888888889
+CompanyStartDate1=1/15/2025
+CompanyEndDate1=7/20/2025
