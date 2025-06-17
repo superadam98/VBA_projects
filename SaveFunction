@@ -328,3 +328,369 @@ Do While Not Ran_Val = "" And Not Ran_Name = S_Title & "EndDate" & i + 1
 Loop
 LatestDate = Latest
 End Function
+
+Sub SaveToParent(Current_Txt_FP As String)
+
+Dim CurrentTitle As String
+Dim CurrentNotepad As Object
+
+Dim File_Num_Init As Integer
+Dim CurrentFP As String
+Dim Parent_Txt_FP As String
+Dim Parent_FP As String
+Dim File_Content As String
+Dim File_Content_Lines() As String
+Dim LineSize As Long
+
+Dim PJ_Child_Arr() As String
+Dim Percent_Child_Arr() As String
+Dim Start_Child_Arr() As String
+Dim End_Child_Arr() As String
+Dim Title As String
+
+
+Dim PJ_C As Long
+Dim Percent_C As Long
+Dim Start_C As Long
+Dim End_C As Long
+
+Dim PJ_Line_CH As String
+Dim Percent_Line_CH As String
+Dim Start_Line_CH As String
+Dim End_Line_CH As String
+Dim Title_Line_CH As String
+Dim Parent_Line_CH As String
+Dim Parent_Line_Rep As String
+
+Dim PJ_Bool As Integer
+Dim Percent_Bool As Integer
+Dim Start_Bool As Integer
+Dim End_Bool As Integer
+Dim Title_Bool As Integer
+Dim Parent_Bool As Integer
+
+Dim i As Long
+
+i = 0
+
+File_Num_Init = FreeFile
+Open Current_Txt_FP For Input As File_Num_Init
+File_Content = Input(LOF(File_Num_Init), File_Num_Init)
+'Opens Text file, initializes, and gets every line from the text file into a string
+File_Content_Lines = Split(File_Content, vbCrLf)
+LineSize = UBound(File_Content_Lines) - LBound(File_Content_Lines)
+
+
+Do Until i = LineSize
+    
+    Parent_Line_CH = "ParentFile="
+    Parent_Bool = InStr(1, File_Content_Lines(i), Parent_Line_CH, vbTextCompare)
+    
+    If Parent_Bool > 0 Then
+    
+        Parent_Line_Rep = File_Content_Lines(i)
+        Parent_FP = Replace(Parent_Line_Rep, Parent_Line_CH, "")
+        Parent_Txt_FP = Replace(Parent_FP, ".xlsm", "_Settings.txt")
+        
+    End If
+    
+    Title_Line_CH = "Title="
+    Title_Bool = InStr(1, File_Content_Lines(i), Title_Line_CH, vbTextCompare)
+    If Title_Bool > 0 Then
+        Title = Replace(File_Content_Lines(i), Title_Line_CH, "")
+    End If
+i = i + 1
+Loop
+
+i = 0
+PJ_C = 1
+Percent_C = 1
+Start_C = 1
+End_C = 1
+Do Until i = LineSize + 1
+    
+    PJ_Line_CH = Title & "ProjectLine" & PJ_C & "="
+    PJ_Bool = InStr(1, File_Content_Lines(i), PJ_Line_CH, vbTextCompare)
+    If PJ_Bool > 0 Then
+        ReDim Preserve PJ_Child_Arr(PJ_C)
+        PJ_Child_Arr(PJ_C) = Replace(File_Content_Lines(i), PJ_Line_CH, "")
+        PJ_C = PJ_C + 1
+    End If
+    
+    
+    
+    Percent_Line_CH = Title & "PercentAmount" & Percent_C & "="
+    Percent_Bool = InStr(1, File_Content_Lines(i), Percent_Line_CH, vbTextCompare)
+    If Percent_Bool > 0 Then
+        ReDim Preserve Percent_Child_Arr(Percent_C)
+        Percent_Child_Arr(Percent_C) = Replace(File_Content_Lines(i), Percent_Line_CH, "")
+        Percent_C = Percent_C + 1
+    End If
+    
+    
+    Start_Line_CH = Title & "StartDate" & Start_C & "="
+    Start_Bool = InStr(1, File_Content_Lines(i), Start_Line_CH, vbTextCompare)
+    If Start_Bool > 0 Then
+        
+        ReDim Preserve Start_Child_Arr(Start_C)
+        Start_Child_Arr(Start_C) = Replace(File_Content_Lines(i), Start_Line_CH, "")
+        Start_C = Start_C + 1
+    End If
+
+    
+    End_Line_CH = Title & "EndDate" & End_C & "="
+    End_Bool = InStr(1, File_Content_Lines(i), End_Line_CH, vbTextCompare)
+    If End_Bool > 0 Then
+        ReDim Preserve End_Child_Arr(End_C)
+        End_Child_Arr(End_C) = Replace(File_Content_Lines(i), End_Line_CH, "")
+        End_C = End_C + 1
+    End If
+
+i = i + 1
+Loop
+
+
+
+Close #File_Num_Init
+
+If Not Parent_FP = "DNE" Then
+Call WriteToParent(Parent_Txt_FP, PJ_Child_Arr(), Percent_Child_Arr(), Start_Child_Arr(), End_Child_Arr(), Title)
+End If
+
+End Sub
+
+Sub WriteToParent(Current_Txt_FP As String, PJ_Child_Arr() As String, Percent_Child_Arr() As String, Start_Child_Arr() As String, End_Child_Arr() As String, C_Title As String)
+
+Dim File_Num_Init As Integer
+Dim File_Content As String
+Dim File_Content_Lines() As String
+Dim LineSize As Long
+
+Dim C_Line_Num As String
+Dim Line_C As Long
+
+Dim C_PJ_CH As String
+Dim C_Percent_CH As String
+Dim C_Start_CH As String
+Dim C_End_CH As String
+Dim C_Line_Num_CH As String
+Dim C_Line_Num_CH2 As String
+Dim Title_Line_CH As String
+
+Dim C_PJ_C As Long
+Dim C_Percent_C As Long
+Dim C_Start_C As Long
+Dim C_End_C As Long
+Dim C_Line_Num_C As Long
+
+Dim C_PJ_Bool As Integer
+Dim C_Percent_Bool As Integer
+Dim C_Start_Bool As Integer
+Dim C_End_Bool As Integer
+Dim C_Line_Bool As Integer
+Dim C_Line_Bool2 As Integer
+
+Dim C_PJ_Rem As String
+Dim C_Percent_Rem As String
+Dim C_Start_Rem As String
+Dim C_End_Rem As String
+
+Dim Percent_Item As Variant
+Dim Percent_Item_Num As Double
+Dim Percent_Total As Double
+Dim Percent_Avg As Double
+Dim Percent_Total_Str As String
+Dim Count As Long
+Dim Start_Item As Variant
+Dim Start_Item_Date As Date
+Dim Earliest_Date As Date
+Dim End_Item As Variant
+Dim End_Item_Date As Date
+Dim Latest_Date As Date
+
+Dim Percent_Line_CH As String
+Dim Start_Line_CH As String
+Dim End_Line_CH As String
+
+Dim Percent_Bool As Integer
+Dim Start_Bool As Integer
+Dim End_Bool As Integer
+
+Dim Percent_Rem As String
+Dim Start_Rem As String
+Dim End_Rem As String
+
+
+Dim i As Long
+
+
+
+
+i = 0
+
+File_Num_Init = FreeFile
+Open Current_Txt_FP For Input As File_Num_Init
+File_Content = Input(LOF(File_Num_Init), File_Num_Init)
+'Opens Text file, initializes, and gets every line from the text file into a string
+File_Content_Lines = Split(File_Content, vbCrLf)
+LineSize = UBound(File_Content_Lines) - LBound(File_Content_Lines)
+
+
+
+
+Do Until i = LineSize
+
+    Title_Line_CH = "Title="
+    Title_Bool = InStr(1, File_Content_Lines(i), Title_Line_CH, vbTextCompare)
+    If Title_Bool > 0 Then
+        Title = Replace(File_Content_Lines(i), Title_Line_CH, "")
+    End If
+i = i + 1
+Loop
+
+'gets the parent title
+
+i = 0
+
+Do Until i = LineSize + 1
+    C_Line_Num_C = 1
+    C_Line_Num_CH = Title & "ProjectLine"
+    C_Line_Num_CH2 = "=" & C_Title
+    C_Line_Bool = InStr(1, File_Content_Lines(i), C_Line_Num_CH2, vbTextCompare)
+    C_Line_Bool2 = InStr(1, File_Content_Lines(i), C_Line_Num_CH, vbTextCompare)
+    
+    If C_Line_Bool > 0 And C_Line_Bool2 > 0 Then
+        C_Line_Num = Replace(File_Content_Lines(i), C_Line_Num_CH2, "")
+        C_Line_Num = Replace(C_Line_Num, C_Line_Num_CH, "")
+    End If
+i = i + 1
+Loop
+
+' gets the child project line number that exists in the parent
+
+
+i = 0
+C_PJ_C = 1
+C_Percent_C = 1
+C_Start_C = 1
+C_End_C = 1
+
+Do Until i = LineSize + 1
+    C_PJ_Line_CH = C_Title & "ProjectLine" & C_PJ_C & "="
+    C_PJ_Bool = InStr(1, File_Content_Lines(i), C_PJ_Line_CH, vbTextCompare)
+    If C_PJ_Bool > 0 Then
+        C_PJ_Rem = Replace(File_Content_Lines(i), C_PJ_Line_CH, "")
+        File_Content_Lines(i) = Replace(File_Content_Lines(i), C_PJ_Rem, PJ_Child_Arr(C_PJ_C))
+        C_PJ_C = C_PJ_C + 1
+    End If
+'Updates the child name in the parent file
+    
+    C_Percent_Line_CH = C_Title & "PercentAmount" & C_Percent_C & "="
+    C_Percent_Bool = InStr(1, File_Content_Lines(i), C_Percent_Line_CH, vbTextCompare)
+    If C_Percent_Bool > 0 Then
+        C_Percent_Rem = Replace(File_Content_Lines(i), C_Percent_Line_CH, "")
+        File_Content_Lines(i) = Replace(File_Content_Lines(i), C_Percent_Rem, Percent_Child_Arr(C_Percent_C))
+        C_Percent_C = C_Percent_C + 1
+    End If
+    
+    
+    C_Start_Line_CH = C_Title & "StartDate" & C_Start_C & "="
+    C_Start_Bool = InStr(1, File_Content_Lines(i), C_Start_Line_CH, vbTextCompare)
+    If C_Start_Bool > 0 Then
+        C_Start_Rem = Replace(File_Content_Lines(i), C_Start_Line_CH, "")
+        File_Content_Lines(i) = Replace(File_Content_Lines(i), C_Start_Rem, Start_Child_Arr(C_Start_C))
+        C_Start_C = C_Start_C + 1
+    End If
+    
+    
+    C_End_Line_CH = C_Title & "EndDate" & C_End_C & "="
+    C_End_Bool = InStr(1, File_Content_Lines(i), C_End_Line_CH, vbTextCompare)
+    If C_End_Bool > 0 Then
+        C_End_Rem = Replace(File_Content_Lines(i), C_End_Line_CH, "")
+        File_Content_Lines(i) = Replace(File_Content_Lines(i), C_End_Rem, End_Child_Arr(C_End_C))
+        C_End_C = C_End_C + 1
+    End If
+    i = i + 1
+Loop
+
+Total = 0
+Count = 0
+For Each Percent_Item In Percent_Child_Arr()
+    Percent_Item_Num = Val(Percent_Item)
+    Percent_Total = Percent_Total + Percent_Item_Num
+    Count = Count + 1
+Next Percent_Item
+Count = Count - 1
+Percent_Avg = Percent_Total / Count
+' gets the average of the child percentages
+
+Earliest_Date = #12/30/2080#
+For Each Start_Item In Start_Child_Arr()
+    If Not Start_Item = "" Then
+    Start_Item_Date = CDate(Start_Item)
+        If Start_Item_Date < Earliest_Date Then
+        Earliest_Date = Start_Item_Date
+        End If
+    End If
+Next Start_Item
+
+Latest_Date = #1/1/2020#
+For Each End_Item In End_Child_Arr()
+    If Not End_Item = "" Then
+    End_Item_Date = CDate(End_Item)
+        If End_Item_Date > Latest_Date Then
+        Latest_Date = End_Item_Date
+        End If
+    End If
+Next End_Item
+
+
+
+i = 0
+
+Do Until i = LineSize + 1
+
+    Percent_Line_CH = Title & "PercentAmount" & C_Line_Num & "="
+    Percent_Bool = InStr(1, File_Content_Lines(i), Percent_Line_CH, vbTextCompare)
+        If Percent_Bool > 0 Then
+        Percent_Rem = Replace(File_Content_Lines(i), Percent_Line_CH, "")
+        File_Content_Lines(i) = Replace(File_Content_Lines(i), Percent_Rem, Percent_Avg)
+        End If
+
+    
+    Start_Line_CH = Title & "StartDate" & C_Line_Num & "="
+    Start_Bool = InStr(1, File_Content_Lines(i), Start_Line_CH, vbTextCompare)
+        If Start_Bool > 0 Then
+        Start_Rem = Replace(File_Content_Lines(i), Start_Line_CH, "")
+        File_Content_Lines(i) = Replace(File_Content_Lines(i), Start_Rem, Earliest_Date)
+        End If
+    
+    End_Line_CH = Title & "EndDate" & C_Line_Num & "="
+    End_Bool = InStr(1, File_Content_Lines(i), End_Line_CH, vbTextCompare)
+        If End_Bool > 0 Then
+        End_Rem = Replace(File_Content_Lines(i), End_Line_CH, "")
+        File_Content_Lines(i) = Replace(File_Content_Lines(i), End_Rem, Latest_Date)
+        End If
+    
+i = i + 1
+Loop
+
+
+
+Close #File_Num_Init
+
+Line_C = 0
+
+    Open Current_Txt_FP For Output As #File_Num_Init
+    For Line_C = LBound(File_Content_Lines) To UBound(File_Content_Lines)
+        If Not File_Content_Lines(Line_C) = "" Then
+        Print #File_Num_Init, File_Content_Lines(Line_C)
+        End If
+    Next Line_C
+Close #File_Num_Init
+
+
+Call SaveToParent(Current_Txt_FP)
+
+
+End Sub
