@@ -1,0 +1,330 @@
+Private S_Title As String
+Private Current_rowcount As Long
+
+
+Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
+
+Dim Low_Current As Workbook
+Dim Low_CurrentFP As String
+Dim Txt_F_L As Object
+Dim Low_Current_Txt_FP As String
+
+Set Low_Current = ActiveWorkbook
+Low_CurrentFP = Low_Current.Path
+
+
+S_Title = Low_Current.Name
+S_Title = Replace(S_Title, ".xlsm", "")
+If Not Low_CurrentFP = "C:\Users\admin_achilal\Desktop\Gantt" Then
+    Call ProjectLineUpdate(Low_CurrentFP)
+    Call GetCTitleValues(Low_CurrentFP)
+    Low_Current_Txt_FP = Low_CurrentFP & "\" & S_Title & "_Settings.txt"
+    Call SaveToParent(Low_Current_Txt_FP)
+End If
+
+End Sub
+
+Sub ProjectLineUpdate(CurrentFP As String)
+
+Dim Current_Txt_FP As String
+Dim Txt_F_L As Object
+Dim Current_Txt_F As Object
+
+Dim Line As String
+
+Dim E_rowcount As String
+
+
+Dim E_Parent_OG As String
+Dim Parent_OG As String
+
+
+Current_Txt_FP = CurrentFP & "\" & S_Title & "_Settings.txt"
+
+E_rowcount = S_Title & "rowcount="
+E_Parent_OG = "ParentFile="
+
+Set Txt_F_L = CreateObject("Scripting.FileSystemObject")
+Set Current_Txt_F = Txt_F_L.OpenTextFile(Current_Txt_FP, 1, False, -2)
+
+Do Until Current_Txt_F.AtEndOfStream
+    Line = Current_Txt_F.ReadLine
+        If InStr(1, Line, E_Parent_OG, vbTextCompare) > 0 Then
+            Parent_OG = Replace(Line, E_Parent_OG, "")
+        End If
+        If InStr(1, Line, E_rowcount, vbTextCompare) > 0 Then
+            Current_rowcount = Replace(Line, E_rowcount, "")
+        End If
+Loop
+
+End Sub
+Sub GetCTitleValues(CurrentFP As String)
+
+Dim Pointer As Range
+
+Dim Current_Workbook As Workbook
+Dim File_Num_Init As Integer
+Dim Current_Txt_FP As String
+Dim File_Content As String
+Dim File_Content_Lines() As String
+Dim LineSize As Long
+
+Dim NB_PJ_CH As String
+Dim PJ_Val As String
+Dim PJ_New_Val As String
+Dim PJ_Line_To_Update As Long
+
+Dim NB_Percent_CH As String
+Dim Percent_Old_Val As String
+Dim Percent_Val_Num As Double
+Dim Percent_Val As String
+Dim Percent_New_Val As String
+Dim Percent_Line_To_Update As Long
+
+Dim NB_Start_CH As String
+Dim Start_Old_Val As String
+Dim Start_Val_Date As Date
+Dim Start_Val As String
+Dim Start_New_Val As String
+Dim Start_Line_To_Update As Long
+
+Dim NB_End_CH As String
+Dim End_Old_Val As String
+Dim End_Val_Date As Date
+Dim End_Val As String
+Dim End_New_Val As String
+Dim End_Line_To_Update As Long
+
+
+Dim i As Long
+
+
+Set Current_Workbook = ActiveWorkbook
+
+Current_Txt_FP = CurrentFP & "\" & S_Title & "_Settings.txt"
+
+File_Num_Init = FreeFile
+Open Current_Txt_FP For Input As File_Num_Init
+File_Content = Input(LOF(File_Num_Init), File_Num_Init)
+'Opens Text file, initializes, and gets every line from the text file into a string
+File_Content_Lines = Split(File_Content, vbCrLf)
+LineSize = UBound(File_Content_Lines) - LBound(File_Content_Lines)
+
+i = 1
+
+Do Until i = Current_rowcount + 1
+    NB_PJ_CH = S_Title & "ProjectLine" & i
+    Set Pointer = Current_Workbook.Names(NB_PJ_CH).RefersToRange
+    PJ_Val = Pointer.Value
+    PJ_New_Val = NB_PJ_CH & "=" & PJ_Val
+    
+    
+    PJ_Line_To_Update = RunLoop(LineSize, File_Content_Lines(), NB_PJ_CH, PJ_New_Val)
+        If Not PJ_Line_To_Update = 0 Then
+        File_Content_Lines(PJ_Line_To_Update) = Replace(File_Content_Lines(PJ_Line_To_Update), File_Content_Lines(PJ_Line_To_Update), PJ_New_Val)
+        End If
+i = i + 1
+Loop
+
+i = 1
+
+Do Until i = Current_rowcount + 1
+    NB_Percent_CH = S_Title & "PercentAmount" & i
+    Set Pointer = Current_Workbook.Names(NB_Percent_CH).RefersToRange
+    Percent_Old_Val = Pointer.Value
+    Percent_Val_Num = AverageProgress(Pointer, i)
+    Percent_Val = CStr(Percent_Val_Num)
+    Set Pointer = Current_Workbook.Names(NB_Percent_CH).RefersToRange
+    Pointer.Value = Percent_Val
+    Percent_New_Val = NB_Percent_CH & "=" & Percent_Val
+    
+    
+    Percent_Line_To_Update = RunLoop(LineSize, File_Content_Lines(), NB_Percent_CH, Percent_New_Val)
+        If Not Percent_Line_To_Update = 0 Then
+        File_Content_Lines(Percent_Line_To_Update) = Replace(File_Content_Lines(Percent_Line_To_Update), File_Content_Lines(Percent_Line_To_Update), Percent_New_Val)
+        End If
+        Pointer.NumberFormat = "0.00%"
+i = i + 1
+Loop
+
+i = 1
+
+Do Until i = Current_rowcount + 1
+    NB_Start_CH = S_Title & "StartDate" & i
+    Set Pointer = Current_Workbook.Names(NB_Start_CH).RefersToRange
+    Start_Val = Pointer.Value
+    Start_Old_Val = Pointer.Value
+        Start_Val_Date = EarliestDate(Pointer, i)
+        Start_Val = CStr(DateValue(Start_Val_Date))
+        Set Pointer = Current_Workbook.Names(NB_Start_CH).RefersToRange
+        Pointer.Value = Start_Val
+    Start_New_Val = NB_Start_CH & "=" & Start_Val
+    
+    
+    Start_Line_To_Update = RunLoop(LineSize, File_Content_Lines(), NB_Start_CH, Start_New_Val)
+        If Not Start_Line_To_Update = 0 Then
+        File_Content_Lines(Start_Line_To_Update) = Replace(File_Content_Lines(Start_Line_To_Update), File_Content_Lines(Start_Line_To_Update), Start_New_Val)
+        End If
+i = i + 1
+Loop
+
+i = 1
+
+Do Until i = Current_rowcount + 1
+    NB_End_CH = S_Title & "EndDate" & i
+    Set Pointer = Current_Workbook.Names(NB_End_CH).RefersToRange
+    End_Val = Pointer.Value
+    End_Old_Val = Pointer.Value
+        End_Val_Date = LatestDate(Pointer, i)
+        End_Val = CStr(DateValue(End_Val_Date))
+        Set Pointer = Current_Workbook.Names(NB_End_CH).RefersToRange
+        Pointer.Value = End_Val
+    End_New_Val = NB_End_CH & "=" & End_Val
+    
+    
+    End_Line_To_Update = RunLoop(LineSize, File_Content_Lines(), NB_End_CH, End_New_Val)
+        If Not End_Line_To_Update = 0 Then
+        File_Content_Lines(End_Line_To_Update) = Replace(File_Content_Lines(End_Line_To_Update), File_Content_Lines(End_Line_To_Update), End_New_Val)
+        End If
+i = i + 1
+Loop
+
+Close #File_Num_Init
+Call WriteToNote(Current_Txt_FP, File_Num_Init, File_Content_Lines())
+Close #File_Num_Init
+
+
+
+
+End Sub
+
+Function RunLoop(LineSize As Long, File_Content_Lines() As String, NB_CH As String, New_Val As String) As Long
+
+Dim Line_Test As Long
+Dim Line_To_Change As Long
+
+Dim j As Long
+j = 1
+
+    Do Until j = LineSize + 1
+    
+        
+        Line_Test = InStr(1, File_Content_Lines(j), NB_CH, vbTextCompare)
+        If Line_Test > 0 Then
+            If Not File_Content_Lines(j) = New_Val Then
+                Line_To_Change = j
+            End If
+        End If
+        
+    j = j + 1
+    Loop
+RunLoop = Line_To_Change
+
+End Function
+
+Sub WriteToNote(Current_Txt_FP As String, File_Num_Init As Integer, File_Content_Lines() As String)
+    Dim Line_C As Long
+    Dim i As Long
+    
+    Line_C = 0
+
+    Open Current_Txt_FP For Output As #File_Num_Init
+    For Line_C = LBound(File_Content_Lines) To UBound(File_Content_Lines)
+        If Not File_Content_Lines(Line_C) = "" Then
+        Print #File_Num_Init, File_Content_Lines(Line_C)
+        End If
+    Next Line_C
+Close #File_Num_Init
+End Sub
+
+Function AverageProgress(Pointer As Range, i As Long) As Double
+
+Dim Total As Double
+Dim Counter As Double
+Dim Ran_Val As String
+Dim Ran_Name As String
+Dim Ran_Num As Double
+
+
+Counter = 0
+Total = 0
+Ran_Val = Pointer.Value
+Ran_Name = Pointer.Name.Name
+Do Until Ran_Val = "" Or Ran_Name = S_Title & "PercentAmount" & i + 1
+
+        Set Pointer = Pointer.Offset(1, 0)
+        Ran_Val = Pointer.Value
+        Ran_Num = Pointer.Value
+        On Error Resume Next
+        Ran_Name = Pointer.Name.Name
+        On Error GoTo 0
+        Counter = Counter + 1
+        Total = Total + Ran_Num
+Loop
+Counter = Counter - 1
+
+If Not Total = 0 Then
+Total = Total / Counter
+End If
+    
+AverageProgress = Total
+
+End Function
+
+Function EarliestDate(Pointer As Range, i As Long) As Date
+
+Dim Earliest As Date
+Dim Current As Date
+
+Dim Ran_Val As String
+Dim Ran_Name As String
+
+
+
+Earliest = #12/30/2080#
+Ran_Val = Pointer.Value
+Ran_Name = Pointer.Name.Name
+Do While Not Ran_Val = "" And Not Ran_Name = S_Title & "StartDate" & i + 1
+
+        Set Pointer = Pointer.Offset(1, 0)
+        Ran_Val = Pointer.Value
+        Current = CDate(Pointer.Value)
+        On Error Resume Next
+        Ran_Name = Pointer.Name.Name
+        On Error GoTo 0
+            If Current < Earliest And Not Ran_Val = "" Then
+                Earliest = Current
+            End If
+        
+Loop
+EarliestDate = Earliest
+End Function
+
+Function LatestDate(Pointer As Range, i As Long) As Date
+
+Dim Latest As Date
+Dim Current As Date
+
+Dim Ran_Val As String
+Dim Ran_Name As String
+
+
+
+Earliest = #1/1/2020#
+Ran_Val = Pointer.Value
+Ran_Name = Pointer.Name.Name
+Do While Not Ran_Val = "" And Not Ran_Name = S_Title & "EndDate" & i + 1
+
+        Set Pointer = Pointer.Offset(1, 0)
+        Ran_Val = Pointer.Value
+        Current = CDate(Pointer.Value)
+        On Error Resume Next
+        Ran_Name = Pointer.Name.Name
+        On Error GoTo 0
+            If Current > Latest And Not Ran_Val = "" Then
+                Latest = Current
+            End If
+        
+Loop
+LatestDate = Latest
+End Function
