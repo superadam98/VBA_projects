@@ -1,0 +1,445 @@
+Private PJ_Title As String
+Private C_File As String
+Private P_FIle As String
+Private Notepad As Object
+Private P_TextFile As Object
+Private C_Workbook As Workbook
+Private P_Workbook As Workbook
+Private Source As Workbook
+Private PJ_Rows As Range
+Private PJ_SubArea As Range
+Private PJ_rowcount As Long
+
+Sub DataInput()
+
+Dim SourceFP As String
+Dim SourceOG As String
+Dim SourceWB As String
+
+
+
+Set P_Workbook = ActiveWorkbook
+
+SourceFP = "C:\Users\admin_achilal\Desktop\Gantt"
+SourceWB = "Global_Gantt_Chart.xlsm"
+SourceOG = SourceFP & "\" & SourceWB
+Set Source = Workbooks.Open(SourceOG)
+Source.Save
+
+' Sets Source Workbook, need to change eventually to be user defined
+
+P_Workbook.Activate
+
+' Sets Parent Workbook
+
+Set PJ_Rows = Range("10:15")
+Set PJ_SubArea = Range("B11:G15")
+' Set Area to copy, need to change eventually to be user controlled
+
+
+PJ_Title = Application.InputBox(Prompt:="Select the Title of the new project", Type:=2)
+
+
+PJ_Title = Replace(PJ_Title, " ", "_")
+' Sets Title
+
+
+Call GetProjectData
+
+P_Workbook.Close SaveChanges:=True
+Source.Close SaveChanges:=False
+End Sub
+
+Sub GetProjectData()
+
+Dim i As Long
+Dim Percent_rowcount As Long
+
+Dim PJ_Array() As String
+Dim Percent_Array() As Double
+Dim Start_Array As Collection
+Dim End_Array As Collection
+
+Dim PJ_Range As Range
+Dim Percent_Range As Range
+Dim Start_Range As Range
+Dim End_Range As Range
+
+Dim PJ_C As Range
+Dim Percent_C As Range
+Dim Start_C As Range
+Dim End_C As Range
+
+Dim PJ_Name As String
+Dim Percent_Name As String
+Dim Start_Name As String
+Dim End_Name As String
+
+i = 1
+
+Set PJ_Range = Application.InputBox(Prompt:="Pick the List of Sub Project", Type:=8)
+'input prompt for users
+PJ_rowcount = PJ_Range.Rows.Count
+ReDim PJ_Array(PJ_rowcount)
+'defines the size of the array based on the selection range size
+For Each PJ_C In PJ_Range
+    PJ_Array(i) = PJ_C.Value
+        PJ_Name = PJ_Title & "ProjectLine" & i
+        PJ_C.Name = PJ_Name
+    'checks if the name already exists so name generation when done twice doesnt overwrite or bug data
+    i = i + 1
+NextIteration:
+Next PJ_C
+' Fills array for project, and defines the name box for the cells
+
+
+
+i = 1
+Set Percent_Range = Application.InputBox(Prompt:="Pick the Sub Project Completion Percentages", Type:=8)
+'input prompt for users
+Percent_rowcount = Percent_Range.Rows.Count
+ReDim Percent_Array(Percent_rowcount)
+'defines the size of the array based on the selection range size
+For Each Percent_C In Percent_Range
+    Percent_Array(i) = Percent_C.Value
+        Percent_Name = PJ_Title & "PercentAmount" & i
+        Percent_C.Name = Percent_Name
+    'checks if the name already exists so name generation when done twice doesnt overwrite or bug data
+    i = i + 1
+Next Percent_C
+' Fills Array for Progress #, and defines the name box for the cells
+
+
+
+i = 1
+Set Start_Range = Application.InputBox(Prompt:="Pick the Sub Project Start Dates", Type:=8)
+'input prompt for users
+Start_rowcount = Start_Range.Rows.Count
+Set Start_Array = New Collection
+'defines the collection as needed for this var type
+For Each Start_C In Start_Range
+    Start_Array.Add Start_C.Value
+        Start_Name = PJ_Title & "StartDate" & i
+        Start_C.Name = Start_Name
+    'checks if the name already exists so name generation when done twice doesnt overwrite or bug data
+    i = i + 1
+Next Start_C
+' Fills Array for Start Date, and defines the name box for the cells
+
+
+
+i = 1
+Set End_Range = Application.InputBox(Prompt:="Pick the Sub Project End Dates", Type:=8)
+'input prompt for users
+End_rowcount = End_Range.Rows.Count
+Set End_Array = New Collection
+'defines the collection as needed for this var type
+For Each End_C In End_Range
+    End_Array.Add End_C.Value
+        End_Name = PJ_Title & "EndDate" & i
+        End_C.Name = End_Name
+    'checks if the name already exists so name generation when done twice doesnt overwrite or bug data
+    i = i + 1
+Next End_C
+' Fills Array for Progress End Date, and defines the name box for the cells
+
+
+
+Set C_Workbook = CreateWorksheet()
+
+'Creates a worksheet and sends the return as defining the current worksheet, also created notepad
+
+Call ChangeFont
+
+Call DefineToNotepad(PJ_Array(), Percent_Array(), Start_Array, End_Array, PJ_C, PJ_Range)
+
+'Adds all the variables to the notepad we will later reference when saving / loading
+
+Call FormatcurrentWorkbook(PJ_Array(), Percent_Array(), Start_Array, End_Array, PJ_C, PJ_Range)
+
+'Copies the template based on how many sub projects were selected
+
+Call HyperlinkTocurrent(PJ_Array(), PJ_C, PJ_Range)
+
+
+
+End Sub
+
+Function CreateWorksheet() As Workbook
+
+Dim Current As Workbook
+Dim Parent As Workbook
+
+Dim CurrentFP As String
+Dim currentOG As String
+Dim ParentFP As String
+Dim ParentOG As String
+
+
+Set Parent = ActiveWorkbook
+
+Dim Source_Module As Object
+Dim Target_Module As Object
+Dim Code_Lines As String
+Dim i As Long
+
+WB_Macro_FP = Source.Path & "\" & "MacroFile" & "\ThisWorkbook.cls"
+
+ParentFP = Parent.Path
+ParentOG = Parent.FullName
+' Defines the workbook where the button is being pressed as the parent
+
+
+Source.Worksheets.Copy
+' Copies the original source workbook to ensure no data issues when I create the new chart
+
+Set Current = ActiveWorkbook
+CurrentFP = ParentFP & "\" & PJ_Title
+'adding new file name based on the title selected as the vhild workbook
+MkDir CurrentFP
+currentOG = CurrentFP & "\" & PJ_Title
+Current.SaveAs Filename:=currentOG, FileFormat:=xlOpenXMLWorkbookMacroEnabled
+'Creates a current file nested within the folder of the parent file, wherever that may be
+
+Set Source_Module = Source.VBProject.VBComponents("ThisWorkbook")
+Set Target_Module = Current.VBProject.VBComponents("ThisWorkbook")
+For i = 1 To Source_Module.CodeModule.CountOfLines
+    Code_Lines = Code_Lines & Source_Module.CodeModule.Lines(i, 1) & vbCrLf
+Next i
+
+Target_Module.CodeModule.AddFromString Code_Lines
+
+Call CreateNotepad(ParentOG, CurrentFP, currentOG)
+'calls the create notepad function to enter the data we just gathered from the title based on the database location defined in source
+Set CreateWorksheet = Current
+'sets the return var to be used in a private workbook var
+End Function
+
+Sub CreateNotepad(P_FP As String, C_FP As String, C_F As String)
+
+Dim C_File_Name As String
+Dim P_FIle_Name As String
+
+Dim FP_Note As Object
+
+
+Set FP_Note = CreateObject("Scripting.FileSystemObject")
+Set Notepad = FP_Note.CreateTextFile(C_FP & "\" & PJ_Title & "_Settings.txt", True)
+'Creates a notepad object and saves the text file as a variable that we can use, also defines the name
+P_FIle = P_FP
+C_File = C_F & ".xlsm"
+'defines the private var file parts that are needed for later use
+P_FIle_Name = "ParentFile=" & P_FP
+C_File_Name = "CurrentFile=" & C_F & ".xlsm"
+'defines the file path and name that will be output to the notepad that was just made, will be used later for referencing
+Notepad.WriteLine P_FIle_Name
+Notepad.WriteLine C_File_Name
+
+
+
+' Creates a notepad where I will be storing variable data and updating from as well as the save location of the parent and current files
+
+End Sub
+
+
+Sub DefineToNotepad(PJ_Array() As String, Percent_Array() As Double, Start_Array As Collection, End_Array As Collection, PJ_C As Range, PJ_Range As Range)
+Dim i As Long
+
+i = 1
+
+Notepad.WriteLine "Title" & "=" & PJ_Title
+Notepad.WriteLine PJ_Title & "rowcount" & "=" & PJ_rowcount
+'writes the title to the notepad
+For Each PJ_C In PJ_Range
+    Notepad.WriteLine PJ_Title & "ProjectLine" & i & "=" & PJ_Array(i)
+    i = i + 1
+Next PJ_C
+
+i = 1
+For Each PJ_C In PJ_Range
+    Notepad.WriteLine PJ_Title & "PercentAmount" & i & "=" & Percent_Array(i)
+    i = i + 1
+Next PJ_C
+
+i = 1
+
+For Each PJ_C In PJ_Range
+    Notepad.WriteLine PJ_Title & "StartDate" & i & "=" & Start_Array(i)
+    i = i + 1
+Next PJ_C
+
+i = 1
+
+For Each PJ_C In PJ_Range
+    Notepad.WriteLine PJ_Title & "EndDate" & i & "=" & End_Array(i)
+    i = i + 1
+Next PJ_C
+
+Notepad.Close
+
+Call ChildFileCreation
+'for loop that writes current data to the notepad for later use
+Call ChildVarTxtAdd(PJ_Array(), Percent_Array(), Start_Array, End_Array, PJ_C, PJ_Range)
+
+End Sub
+
+Sub FormatcurrentWorkbook(PJ_Array() As String, Percent_Array() As Double, Start_Array As Collection, End_Array As Collection, PJ_C As Range, PJ_Range As Range)
+
+
+Dim S_SubAreaSTR As String
+Dim S_RowsSTR As String
+Dim C_SubArea As Range
+Dim C_Area As Range
+Dim Next_Line As Range
+Dim NL_String As String
+Dim C_WS As Worksheet
+
+Dim Print_Pointer As Range
+Dim Print_P_Str As String
+
+Dim i As Long
+i = 1
+
+Range("B1").Value = PJ_Title
+'Changes the Title of the form, since it doesnt move this is static
+Set Next_Line = Range("10:10")
+'Sets the Line Pointer to the current starting row of the range which is row 10, doesnt specify column so we can copy the entire range
+C_Workbook.Activate
+'Sets the current workbook as active so formatting changes affect the current
+Set C_WS = C_Workbook.Sheets(1)
+'defines the current workbook so this can be used in hyperlink function later
+S_SubAreaSTR = PJ_SubArea.Address
+Set C_SubArea = Range(S_SubAreaSTR)
+C_SubArea.ClearContents
+'Grabs the string for the area that will be cleared from the public variable defined in main function, then uses that in the clear content function, this function needs a local area variable
+S_RowSTR = PJ_Rows.Address
+Set C_Area = Range(S_RowSTR)
+'Grabs the rows from the public variable, transfers it to a string so we can define the variable inside the function, and will be used to copy in the for loop
+For Each PJ_C In PJ_Range
+    NL_String = Next_Line.Address
+    C_Area.Copy Range(NL_String)
+    'Defines the next line address as a string and uses it to run the copy function referencing the address of the string for each loop
+    Set Print_Pointer = Next_Line.Cells(1, 1)
+    Set Print_Pointer = Print_Pointer.Offset(0, 1)
+    'Defined the pointer where we will print data to when formatting, starts where the next line copy was just made and offsets it to start the copying process
+    Print_P_Str = Print_Pointer.Address
+    'defines the print string to be used in hyperlink function below
+    Print_Pointer.Name = PJ_Title & "ProjectLine" & i
+    Print_Pointer.Value = PJ_Array(i)
+    'defines a name for the subproject line that is now turned into a main line
+    C_WS.Hyperlinks.Add Anchor:=C_WS.Range(Print_P_Str), Address:=P_FIle
+    'Creates a hyperlink from the main line to the parent file
+    Set Print_Pointer = Print_Pointer.Offset(0, 3)
+    'offsets the pointer variable
+    Print_Pointer.Name = PJ_Title & "PercentAmount" & i
+    Print_Pointer.Value = Percent_Array(i)
+    Set Print_Pointer = Print_Pointer.Offset(0, 1)
+    'repeats the above process for the percent variable
+    Print_Pointer.Name = PJ_Title & "StartDate" & i
+    Print_Pointer.Value = Start_Array(i)
+    Set Print_Pointer = Print_Pointer.Offset(0, 1)
+    'repeats the above process for the start date variable
+    Print_Pointer.Name = PJ_Title & "EndDate" & i
+    Print_Pointer.Value = End_Array(i)
+    'repeats the above process for the end date variable
+    Set Next_Line = Next_Line.Offset(6, 0)
+    i = i + 1
+Next PJ_C
+
+'for loop that iterates through the new current file and brings data, names data, and transfers over the data from the parent file, also makes hyperlinks
+
+End Sub
+
+Sub HyperlinkTocurrent(PJ_Array() As String, PJ_C As Range, PJ_Range As Range)
+
+Dim P_WS As Worksheet
+Dim PJ_Pointer As String
+
+
+P_Workbook.Activate
+Set P_WS = P_Workbook.Sheets(1)
+'Sets the worksheet from the workbook defined in the passed variable for use in the hyperlink function in the for loop
+For Each PJ_C In PJ_Range
+PJ_Pointer = PJ_C.Address
+'setting a string pointer equal to the address of the current address in the forloop for use in the hyperlink function below
+P_WS.Hyperlinks.Add Anchor:=P_WS.Range(PJ_Pointer), Address:=C_File
+Next PJ_C
+'For loop that iterates through the subproject list range and creates hyperlinks for each subproject in the parent file, pointing to the current file
+
+End Sub
+
+Sub ChangeFont()
+Dim C_WS As Worksheet
+
+
+Set C_WS = C_Workbook.Sheets(1)
+With C_WS.Cells
+    .Font.Name = "Arial"
+    .Font.Color = RGB(0, 0, 0)
+    .Font.Underline = False
+End With
+' Changes the forn of the created current workbook after creation
+
+End Sub
+
+Sub ChildFileCreation()
+
+Dim Parent_Notepad_FP As String
+Dim Parent_Notepad_Name As String
+Dim Parent_InBet As String
+Dim Parent_FP_Name As String
+Dim Empty_FP_Name As String
+
+Dim P_Note As Object
+'Defining variables that we will use to run the notepad later and append
+
+Parent_FP_Name = P_Workbook.Name
+Parent_InBet = Replace(Parent_FP_Name, ".xlsm", "")
+Parent_Notepad_Name = Parent_InBet & "_Settings.txt"
+Empty_FP_Name = P_Workbook.Path
+Parent_FP_Name = Empty_FP_Name & "\" & Parent_Notepad_Name
+'Gets the name of the file path for the parent notepad that we are appending the new child name to, aka our current file
+
+Set P_Note = CreateObject("Scripting.FileSystemObject")
+Set P_TextFile = P_Note.OpenTextFile(Parent_FP_Name, 8, False, -2)
+'Opens the text file to add line
+
+P_TextFile.WriteLine "ChildFile" & Title & "=" & C_File
+
+End Sub
+
+Sub ChildVarTxtAdd(PJ_Array() As String, Percent_Array() As Double, Start_Array As Collection, End_Array As Collection, PJ_C As Range, PJ_Range As Range)
+
+Dim i As Long
+
+i = 1
+P_TextFile.WriteLine PJ_Title & "rowcount" & "=" & PJ_rowcount
+For Each PJ_C In PJ_Range
+    P_TextFile.WriteLine PJ_Title & "ProjectLine" & i & "=" & PJ_Array(i)
+    i = i + 1
+Next PJ_C
+
+i = 1
+For Each PJ_C In PJ_Range
+    P_TextFile.WriteLine PJ_Title & "PercentAmount" & i & "=" & Percent_Array(i)
+    i = i + 1
+Next PJ_C
+
+i = 1
+
+For Each PJ_C In PJ_Range
+    P_TextFile.WriteLine PJ_Title & "StartDate" & i & "=" & Start_Array(i)
+    i = i + 1
+Next PJ_C
+
+i = 1
+
+For Each PJ_C In PJ_Range
+    P_TextFile.WriteLine PJ_Title & "EndDate" & i & "=" & End_Array(i)
+    i = i + 1
+Next PJ_C
+
+P_TextFile.Close
+
+End Sub
+
